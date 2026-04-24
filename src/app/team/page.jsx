@@ -1,30 +1,69 @@
 import Link from 'next/link';
 
-export default async function TeamPage() {
-  // Fetch data from a public API
-  const res = await fetch('https://jsonplaceholder.typicode.com/users', { next: { revalidate: 3600 } });
-  
-  if (!res.ok) {
-    return <main className="container" style={{ padding: '120px 20px' }}><h1>Failed to load team data</h1></main>;
+export const teamData = [
+  {
+    id: 1,
+    name: 'Kevin Ezra Duduong',
+    role: 'Founder',
+    gender: 'male',
+    catchPhrase: 'Visionary leader driving the mission of StreetSense.',
+  },
+  {
+    id: 2,
+    name: 'Farhan Arva Amanta',
+    role: 'Marketing Director',
+    gender: 'male',
+    catchPhrase: 'Creative strategist shaping the voice of our brand.',
+  },
+  {
+    id: 3,
+    name: 'Maulana Khoirusyifa',
+    role: 'Full Stack Dev',
+    gender: 'male',
+    catchPhrase: 'Technical wizard building the core of our platform.',
+  },
+  {
+    id: 4,
+    name: 'Klementina Ytu',
+    role: 'UI/UX Designer',
+    gender: 'female',
+    catchPhrase: 'Design expert ensuring a seamless user experience.',
   }
-  
-  const teamMembers = await res.json();
+];
 
+const avatars = {
+  male: 'https://img.icons8.com/ios-filled/200/0A3A6E/user-male.png',
+  female: 'https://img.icons8.com/ios-filled/200/0A3A6E/user-female.png'
+};
+
+export default function TeamPage() {
   return (
-    <main className="container" style={{ padding: '120px 20px', minHeight: '80vh' }}>
-      <h1>Meet Our Team</h1>
-      <p style={{ marginTop: '10px', color: '#666' }}>The dedicated people behind StreetSense.</p>
+    <main className="container section-padding" style={{ minHeight: '80vh' }}>
+      <div className="text-center" style={{ marginBottom: '4rem' }}>
+        <div className="badge">Our People</div>
+        <h2>Meet Our Team</h2>
+        <p style={{ maxWidth: '600px', margin: '0 auto' }}>
+          The passionate individuals driving innovation and excellence at StreetSense.
+        </p>
+      </div>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px', marginTop: '40px' }}>
-        {teamMembers.map((member) => (
-          <Link href={`/team/${member.id}`} key={member.id} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={{ padding: '24px', borderRadius: '12px', background: '#fff', border: '1px solid #eaeaea', transition: 'transform 0.2s, boxShadow 0.2s', cursor: 'pointer' }} className="team-card">
-              <h2 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>{member.name}</h2>
-              <p style={{ color: '#0066cc', fontWeight: '500', marginBottom: '12px' }}>{member.company.name}</p>
-              <p style={{ color: '#666', fontSize: '0.9rem' }}>{member.email}</p>
-            </div>
-          </Link>
-        ))}
+      <div className="team-grid">
+        {teamData.map((member) => {
+          const avatarUrl = avatars[member.gender];
+          
+          return (
+            <Link href={`/team/${member.id}`} key={member.id}>
+              <div className="team-card">
+                <div className="team-avatar" style={{ padding: '20px', background: 'rgba(10, 58, 110, 0.05)' }}>
+                  <img src={avatarUrl} alt={member.name} style={{ objectFit: 'contain' }} />
+                </div>
+                <h3>{member.name}</h3>
+                <div className="team-role">{member.role}</div>
+                <p style={{ fontSize: '0.95rem' }}>{member.catchPhrase}</p>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </main>
   );

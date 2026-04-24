@@ -1,44 +1,52 @@
+import Link from 'next/link';
+import { teamData } from '../page';
+
+const avatars = {
+  male: 'https://img.icons8.com/ios-filled/200/0A3A6E/user-male.png',
+  female: 'https://img.icons8.com/ios-filled/200/0A3A6E/user-female.png'
+};
+
 export default async function TeamMemberPage({ params }) {
   const resolvedParams = await params;
   const { id } = resolvedParams;
   
-  // Fetch data for a specific user
-  const res = await fetch(`https://jsonplaceholder.typicode.com/users/${id}`, { next: { revalidate: 3600 } });
+  const member = teamData.find(m => m.id === parseInt(id));
   
-  if (!res.ok) {
+  if (!member) {
     return (
-      <main className="container" style={{ padding: '120px 20px', minHeight: '80vh' }}>
+      <main className="container section-padding" style={{ minHeight: '80vh' }}>
         <h1>Member Not Found</h1>
+        <Link href="/team" className="btn btn-primary" style={{ marginTop: '1rem' }}>Back to Team</Link>
       </main>
     );
   }
 
-  const member = await res.json();
+  const avatarUrl = avatars[member.gender];
 
   return (
-    <main className="container" style={{ padding: '120px 20px', minHeight: '80vh' }}>
-      <div style={{ maxWidth: '800px', margin: '0 auto', background: '#fff', padding: '40px', borderRadius: '16px', border: '1px solid #eaeaea', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>{member.name}</h1>
-        <p style={{ fontSize: '1.2rem', color: '#0066cc', marginBottom: '30px' }}>{member.company.name}</p>
+    <main className="container section-padding" style={{ minHeight: '80vh' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <Link href="/team" style={{ color: 'var(--primary-blue)', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          &larr; Back to Team
+        </Link>
+      </div>
+
+      <div className="glass-panel" style={{ maxWidth: '900px', margin: '0 auto', padding: '3rem', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, right: 0, width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(10,58,110,0.05) 0%, rgba(255,255,255,0) 70%)', borderRadius: '50%', transform: 'translate(30%, -30%)' }}></div>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
-          <div>
-            <h3 style={{ color: '#888', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Contact Info</h3>
-            <p style={{ marginBottom: '8px' }}><strong>Email:</strong> {member.email}</p>
-            <p style={{ marginBottom: '8px' }}><strong>Phone:</strong> {member.phone}</p>
-            <p style={{ marginBottom: '8px' }}><strong>Website:</strong> {member.website}</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3rem', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
+          <div className="team-avatar" style={{ width: '180px', height: '180px', flexShrink: 0, padding: '30px', background: 'rgba(10, 58, 110, 0.05)' }}>
+            <img src={avatarUrl} alt={member.name} style={{ objectFit: 'contain' }} />
           </div>
-          <div>
-            <h3 style={{ color: '#888', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Location</h3>
-            <p style={{ marginBottom: '8px' }}>{member.address.suite} {member.address.street}</p>
-            <p style={{ marginBottom: '8px' }}>{member.address.city}, {member.address.zipcode}</p>
+          
+          <div style={{ flex: '1', minWidth: '300px' }}>
+            <h1 style={{ fontSize: '3rem', marginBottom: '0.5rem', color: 'var(--text-dark)' }}>{member.name}</h1>
+            <div className="team-role" style={{ fontSize: '1.1rem', marginBottom: '1.5rem' }}>{member.role}</div>
+            
+            <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)', marginBottom: '2rem', fontStyle: 'italic', maxWidth: '600px' }}>
+              "{member.catchPhrase}"
+            </p>
           </div>
-        </div>
-        
-        <div style={{ padding: '20px', background: '#f9f9f9', borderRadius: '8px' }}>
-          <h3 style={{ marginBottom: '10px' }}>About Company</h3>
-          <p style={{ fontStyle: 'italic', color: '#555' }}>"{member.company.catchPhrase}"</p>
-          <p style={{ marginTop: '10px', color: '#666' }}>{member.company.bs}</p>
         </div>
       </div>
     </main>
