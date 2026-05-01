@@ -36,10 +36,12 @@ export default function Navbar() {
           <Link href="/about" onClick={() => setIsActive(false)}>About</Link>
           <Link href="/services" onClick={() => setIsActive(false)}>Services</Link>
           <Link href="/impact" onClick={() => setIsActive(false)}>Impact</Link>
+          <Link href="/dashboard" onClick={() => setIsActive(false)}>Dashboard</Link>
           <Link href="/team" onClick={() => setIsActive(false)}>Team</Link>
           <Link href="/contact" onClick={() => setIsActive(false)}>Contact</Link>
+          <Link href="/report" onClick={() => setIsActive(false)} style={{ fontWeight: 'bold', color: '#0056b3' }}>Lapor Jalan</Link>
         </nav>
-        <Link href="/#cta" className="btn btn-primary" style={{ display: 'inline-block' }}>Join Prototype</Link>
+        <Link href="/report" className="btn btn-primary" style={{ display: 'inline-block' }}>Lapor Sekarang</Link>
         <button className="mobile-menu-btn" aria-label="Toggle menu" onClick={toggleMenu}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="3" y1="12" x2="21" y2="12"></line>
