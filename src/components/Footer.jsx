@@ -22,18 +22,12 @@ export default function Footer() {
               <h4>Product</h4>
               <Link href="/#features">Features</Link>
               <Link href="/#how-it-works">How it works</Link>
-              <Link href="#">Pricing</Link>
             </div>
             <div className="link-group">
               <h4>Company</h4>
               <Link href="/about">About Us</Link>
               <Link href="/careers">Careers</Link>
               <Link href="/contact">Contact</Link>
-            </div>
-            <div className="link-group">
-              <h4>Legal</h4>
-              <Link href="#">Privacy Policy</Link>
-              <Link href="#">Terms of Service</Link>
             </div>
           </div>
         </div>

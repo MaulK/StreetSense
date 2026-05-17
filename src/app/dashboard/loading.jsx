@@ -6,7 +6,7 @@ export default function Loading() {
         <div style={{ width: '150px', height: '35px', background: '#e0e0e0', borderRadius: '20px', animation: 'pulse 1.5s infinite' }}></div>
       </div>
       
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+      <div className="dashboard-grid">
         <section style={{ background: '#fff', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
           <div style={{ width: '250px', height: '30px', background: '#e0e0e0', borderRadius: '8px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }}></div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
