@@ -1,32 +1,109 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useOptimistic, useTransition, Suspense } from 'react';
+import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 
-export default function DashboardPage() {
+function DashboardContent() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const { replace } = useRouter();
+
+  const searchFilter = searchParams.get('search')?.toString() || '';
+  const severityFilter = searchParams.get('severity')?.toString() || '';
+
+  // Optimistic UI Hook setup
+  const [optimisticReports, addOptimisticReport] = useOptimistic(
+    reports,
+    (state, idToRemove) => state.filter((report) => report.id !== idToRemove)
+  );
+
+  const [isPending, startTransition] = useTransition();
+
+  const handleSearch = (e) => {
+    const term = e.target.value;
+    const params = new URLSearchParams(searchParams);
+    if (term) {
+      params.set('search', term);
+    } else {
+      params.delete('search');
+    }
+    replace(`${pathname}?${params.toString()}`);
+  };
+
+  const handleSeverityChange = (e) => {
+    const severity = e.target.value;
+    const params = new URLSearchParams(searchParams);
+    if (severity) {
+      params.set('severity', severity);
+    } else {
+      params.delete('severity');
+    }
+    replace(`${pathname}?${params.toString()}`);
+  };
+
+  const handleResolve = async (id) => {
+    // Instant UI Update
+    startTransition(() => {
+      addOptimisticReport(id);
+    });
+    
+    // Simulate server action
+    try {
+      await supabase.from('road_reports').delete().eq('id', id);
+      setReports((prev) => prev.filter(report => report.id !== id));
+    } catch (err) {
+      console.error("Failed to delete report:", err);
+    }
+  };
+
   useEffect(() => {
     async function fetchReports() {
-      const { data, error } = await supabase
+      setLoading(true);
+      
+      let query = supabase
         .from('road_reports')
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .order('created_at', { ascending: false });
+
+      if (severityFilter) {
+        query = query.eq('severity', severityFilter);
+      }
+      if (searchFilter) {
+        query = query.ilike('road_name', `%${searchFilter}%`);
+      }
+      
+      const { data, error } = await query.limit(10);
       
       if (!error && data && data.length > 0) {
         setReports(data);
       } else {
-        // Fallback to dummy data for MVP presentation if DB is empty or fails
-        setReports([
-          { id: '1', road_name: 'Jl. Sudirman (Dekat Halte)', description: 'Lubang cukup dalam di lajur kiri, bahaya buat motor.', severity: 'High', latitude: -6.2088, longitude: 106.8456, created_at: new Date().toISOString() },
-          { id: '2', road_name: 'Jl. Thamrin KM 2', description: 'Aspal bergelombang parah setelah hujan.', severity: 'Medium', latitude: -6.2115, longitude: 106.8451, created_at: new Date(Date.now() - 86400000).toISOString() },
-        ]);
+        // Fallback or empty logic
+        if (!error && data && data.length === 0) {
+          setReports([]);
+        } else {
+          // Dummy data for MVP presentation
+          let dummyData = [
+            { id: '1', road_name: 'Jl. Sudirman (Dekat Halte)', description: 'Lubang cukup dalam di lajur kiri, bahaya buat motor.', severity: 'High', latitude: -6.2088, longitude: 106.8456, created_at: new Date().toISOString() },
+            { id: '2', road_name: 'Jl. Thamrin KM 2', description: 'Aspal bergelombang parah setelah hujan.', severity: 'Medium', latitude: -6.2115, longitude: 106.8451, created_at: new Date(Date.now() - 86400000).toISOString() },
+          ];
+          
+          if (severityFilter) {
+            dummyData = dummyData.filter(d => d.severity === severityFilter);
+          }
+          if (searchFilter) {
+            dummyData = dummyData.filter(d => d.road_name.toLowerCase().includes(searchFilter.toLowerCase()));
+          }
+          
+          setReports(dummyData);
+        }
       }
       setLoading(false);
     }
     fetchReports();
-  }, []);
+  }, [searchFilter, severityFilter]);
 
   // Mock Predictive Data
   const highRiskSegments = [
@@ -36,6 +113,113 @@ export default function DashboardPage() {
   ];
 
   return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+      {/* Left Column: Recent Reports */}
+      <section style={{ background: '#fff', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #f0f0f0', paddingBottom: '15px', marginBottom: '20px' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
+            <span style={{ fontSize: '1.5rem' }}>🚨</span> Recent Reports
+          </h3>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <input 
+              type="text" 
+              placeholder="Search road..." 
+              value={searchFilter}
+              onChange={handleSearch}
+              style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ddd' }}
+            />
+            <select value={severityFilter} onChange={handleSeverityChange} style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ddd' }}>
+              <option value="">All Severities</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+        </div>
+        
+        {loading ? (
+          <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>Loading reports...</div>
+        ) : optimisticReports.length === 0 ? (
+          <div style={{ padding: '20px', textAlign: 'center', color: '#666', background: '#f9f9f9', borderRadius: '8px' }}>No reports found matching your criteria.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {optimisticReports.map(report => (
+              <div key={report.id} style={{ padding: '15px', border: '1px solid #eee', borderRadius: '12px', background: '#fafafa', borderLeft: `5px solid ${report.severity === 'High' ? '#dc3545' : report.severity === 'Medium' ? '#ffc107' : '#28a745'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <strong>{report.road_name}</strong>
+                  <span style={{ fontSize: '0.8rem', background: '#e9ecef', padding: '3px 8px', borderRadius: '12px' }}>{new Date(report.created_at).toLocaleDateString()}</span>
+                </div>
+                <p style={{ fontSize: '0.9rem', margin: '0 0 10px 0', color: '#555' }}>{report.description}</p>
+                <div style={{ fontSize: '0.8rem', color: '#777', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '15px' }}>
+                    <span>⚠️ Severity: <strong>{report.severity}</strong></span>
+                    {report.latitude && <span>📍 {report.latitude.toFixed(4)}, {report.longitude.toFixed(4)}</span>}
+                  </div>
+                  <button onClick={() => handleResolve(report.id)} style={{ padding: '4px 8px', fontSize: '0.8rem', background: '#28a745', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                    Resolve
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Right Column: Predictive Analysis & Preventive Actions */}
+      <section style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+        <div style={{ background: 'linear-gradient(135deg, #0A3A6E, #1C5A9A)', color: 'white', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <span style={{ fontSize: '1.5rem' }}>📊</span> Predictive Analysis
+          </h3>
+          <p style={{ color: '#e0e0e0', fontSize: '0.9rem', marginBottom: '20px' }}>
+            AI-driven risk assessment combining historical weather data, traffic intensity, and pavement age to predict future deterioration.
+          </p>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {highRiskSegments.map(segment => (
+              <div key={segment.id} style={{ background: 'rgba(255,255,255,0.1)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <strong style={{ fontSize: '1.1rem' }}>{segment.road}</strong>
+                  <div style={{ background: segment.riskScore > 85 ? '#ff4d4f' : '#faad14', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                    Risk Score: {segment.riskScore}/100
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: '#d9d9d9', margin: 0 }}>
+                  <strong>Factors:</strong> {segment.reason}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ background: '#fff', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #e6f4ea' }}>
+          <h3 style={{ color: '#1E824C', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <span style={{ fontSize: '1.5rem' }}>🛡️</span> Preventive Action Support
+          </h3>
+          <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '20px' }}>
+            Data-driven insights for authorities to take accurate preventive measures before road damage worsens.
+          </p>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {highRiskSegments.map(segment => (
+              <div key={`action-${segment.id}`} style={{ padding: '15px', background: '#f8fdfa', borderRadius: '10px', borderLeft: '4px solid #1E824C' }}>
+                <strong style={{ display: 'block', marginBottom: '5px', color: '#2c3e50' }}>Action for {segment.road}</strong>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#555' }}>✅ {segment.preventiveAction}</p>
+              </div>
+            ))}
+          </div>
+          
+          <button className="btn btn-primary" style={{ width: '100%', marginTop: '20px', background: '#1E824C' }}>
+            Generate Maintenance Work Orders
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
     <main className="container" style={{ padding: '120px 20px', minHeight: '80vh' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <h1>Authority Dashboard</h1>
@@ -44,87 +228,9 @@ export default function DashboardPage() {
         </div>
       </div>
       
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-        {/* Left Column: Recent Reports */}
-        <section style={{ background: '#fff', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-          <h3 style={{ borderBottom: '2px solid #f0f0f0', paddingBottom: '15px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '1.5rem' }}>🚨</span> Recent Crowdsourced Reports
-          </h3>
-          {loading ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>Loading reports...</div>
-          ) : reports.length === 0 ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#666', background: '#f9f9f9', borderRadius: '8px' }}>No reports found.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              {reports.map(report => (
-                <div key={report.id} style={{ padding: '15px', border: '1px solid #eee', borderRadius: '12px', background: '#fafafa', borderLeft: `5px solid ${report.severity === 'High' ? '#dc3545' : report.severity === 'Medium' ? '#ffc107' : '#28a745'}` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <strong>{report.road_name}</strong>
-                    <span style={{ fontSize: '0.8rem', background: '#e9ecef', padding: '3px 8px', borderRadius: '12px' }}>{new Date(report.created_at).toLocaleDateString()}</span>
-                  </div>
-                  <p style={{ fontSize: '0.9rem', margin: '0 0 10px 0', color: '#555' }}>{report.description}</p>
-                  <div style={{ fontSize: '0.8rem', color: '#777', display: 'flex', gap: '15px' }}>
-                    <span>⚠️ Severity: <strong>{report.severity}</strong></span>
-                    {report.latitude && <span>📍 {report.latitude.toFixed(4)}, {report.longitude.toFixed(4)}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Right Column: Predictive Analysis & Preventive Actions */}
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-          
-          <div style={{ background: 'linear-gradient(135deg, #0A3A6E, #1C5A9A)', color: 'white', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-              <span style={{ fontSize: '1.5rem' }}>📊</span> Predictive Analysis
-            </h3>
-            <p style={{ color: '#e0e0e0', fontSize: '0.9rem', marginBottom: '20px' }}>
-              AI-driven risk assessment combining historical weather data, traffic intensity, and pavement age to predict future deterioration.
-            </p>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              {highRiskSegments.map(segment => (
-                <div key={segment.id} style={{ background: 'rgba(255,255,255,0.1)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <strong style={{ fontSize: '1.1rem' }}>{segment.road}</strong>
-                    <div style={{ background: segment.riskScore > 85 ? '#ff4d4f' : '#faad14', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                      Risk Score: {segment.riskScore}/100
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '0.85rem', color: '#d9d9d9', margin: 0 }}>
-                    <strong>Factors:</strong> {segment.reason}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ background: '#fff', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #e6f4ea' }}>
-            <h3 style={{ color: '#1E824C', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-              <span style={{ fontSize: '1.5rem' }}>🛡️</span> Preventive Action Support
-            </h3>
-            <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '20px' }}>
-              Data-driven insights for authorities to take accurate preventive measures before road damage worsens.
-            </p>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              {highRiskSegments.map(segment => (
-                <div key={`action-${segment.id}`} style={{ padding: '15px', background: '#f8fdfa', borderRadius: '10px', borderLeft: '4px solid #1E824C' }}>
-                  <strong style={{ display: 'block', marginBottom: '5px', color: '#2c3e50' }}>Action for {segment.road}</strong>
-                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#555' }}>✅ {segment.preventiveAction}</p>
-                </div>
-              ))}
-            </div>
-            
-            <button className="btn btn-primary" style={{ width: '100%', marginTop: '20px', background: '#1E824C' }}>
-              Generate Maintenance Work Orders
-            </button>
-          </div>
-
-        </section>
-      </div>
+      <Suspense fallback={<div style={{ padding: '50px', textAlign: 'center' }}>Loading dashboard data...</div>}>
+        <DashboardContent />
+      </Suspense>
     </main>
   );
 }

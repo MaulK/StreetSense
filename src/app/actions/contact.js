@@ -1,18 +1,30 @@
 "use server";
 
 import { supabase } from "../../lib/supabase";
+import { z } from "zod";
+
+const ContactSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please provide a valid email address"),
+  message: z.string().min(5, "Message must be at least 5 characters"),
+});
 
 export async function submitContactForm(prevState, formData) {
   // Add an artificial delay to show loading state nicely
   await new Promise((resolve) => setTimeout(resolve, 1500));
 
-  const name = formData.get("name");
-  const email = formData.get("email");
-  const message = formData.get("message");
+  const parsed = ContactSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    message: formData.get("message"),
+  });
 
-  if (!name || !email || !message) {
-    return { error: "All fields are required" };
+  if (!parsed.success) {
+    const errorMessages = parsed.error.issues.map(issue => issue.message).join(", ");
+    return { error: `Validation Error: ${errorMessages}` };
   }
+
+  const { name, email, message } = parsed.data;
 
   try {
     const { data, error } = await supabase
