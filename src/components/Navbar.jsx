@@ -2,7 +2,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-export default function Navbar() {
+import { logoutUser } from '../app/actions/auth';
+
+export default function Navbar({ isLoggedIn }) {
   const [isActive, setIsActive] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isDropdownActive, setIsDropdownActive] = useState(false);
@@ -57,7 +59,16 @@ export default function Navbar() {
 
           <Link href="/report" onClick={() => setIsActive(false)} style={{ fontWeight: 'bold', color: '#0056b3' }}>Lapor Jalan</Link>
         </nav>
-        <Link href="/report" className="btn btn-primary" style={{ display: 'inline-block' }}>Lapor Sekarang</Link>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {isLoggedIn ? (
+            <form action={logoutUser} style={{ display: 'inline-block', margin: 0 }}>
+              <button type="submit" className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}>Logout</button>
+            </form>
+          ) : (
+            <Link href="/login" className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}>Login</Link>
+          )}
+          <Link href="/report" className="btn btn-primary" style={{ display: 'inline-block' }}>Lapor</Link>
+        </div>
         <button className="mobile-menu-btn" aria-label="Toggle menu" onClick={toggleMenu}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="3" y1="12" x2="21" y2="12"></line>

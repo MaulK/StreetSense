@@ -10,11 +10,17 @@ export const metadata = {
   description: 'StreetSense empowers you to report local issues, track their progress, and see the real impact you\'re making in your community.',
 };
 
-export default function RootLayout({ children }) {
+import { cookies } from 'next/headers';
+
+export default async function RootLayout({ children }) {
+  const cookieStore = await cookies();
+  const session = cookieStore.get('session');
+  const isLoggedIn = !!session?.value;
+
   return (
     <html lang="en" className={outfit.className}>
       <body>
-        <Navbar />
+        <Navbar isLoggedIn={isLoggedIn} />
         {children}
         <Footer />
       </body>

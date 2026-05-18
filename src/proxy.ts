@@ -4,15 +4,10 @@ export function proxy(request) {
   // Simple session check: Look for a cookie named "session"
   const session = request.cookies.get('session');
   
-  // NOTE: For the MVP presentation, the redirect is temporarily bypassed 
-  // so you can actually view the dashboard without a login system in place.
-  // Uncomment the following lines to enforce the strict protection:
-  
-  /*
+  // NOTE: Route protection is now strictly enforced!
   if (!session) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/login', request.url));
   }
-  */
 
   return NextResponse.next();
 }
