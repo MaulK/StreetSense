@@ -3,8 +3,10 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 import { logoutUser } from '../app/actions/auth';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Navbar({ isLoggedIn }) {
+  const { lang, toggleLanguage, t } = useLanguage();
   const [isActive, setIsActive] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isDropdownActive, setIsDropdownActive] = useState(false);
@@ -35,8 +37,8 @@ export default function Navbar({ isLoggedIn }) {
           StreetSense
         </Link>
         <nav className={`nav-links ${isActive ? 'active' : ''}`}>
-          <Link href="/#features" onClick={() => setIsActive(false)}>Features</Link>
-          <Link href="/dashboard" onClick={() => setIsActive(false)}>Dashboard</Link>
+          <Link href="/#features" onClick={() => setIsActive(false)}>{t('Features', 'Fitur')}</Link>
+          <Link href="/dashboard" onClick={() => setIsActive(false)}>{t('Dashboard', 'Dasbor')}</Link>
           
           <div 
             className="dropdown"
@@ -45,29 +47,31 @@ export default function Navbar({ isLoggedIn }) {
             onClick={() => setIsDropdownActive(!isDropdownActive)}
           >
             <button className="dropbtn" aria-expanded={isDropdownActive}>
-              Company
+              {t('Company', 'Perusahaan')}
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginLeft: '4px', transform: isDropdownActive ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s ease'}}><path d="m6 9 6 6 6-6"/></svg>
             </button>
             <div className={`dropdown-content ${isDropdownActive ? 'show' : ''}`}>
-              <Link href="/about" onClick={() => setIsActive(false)}>About</Link>
-              <Link href="/services" onClick={() => setIsActive(false)}>Services</Link>
-              <Link href="/impact" onClick={() => setIsActive(false)}>Impact</Link>
-              <Link href="/team" onClick={() => setIsActive(false)}>Team</Link>
-              <Link href="/contact" onClick={() => setIsActive(false)}>Contact</Link>
+              <Link href="/about" onClick={() => setIsActive(false)}>{t('About', 'Tentang')}</Link>
+              <Link href="/services" onClick={() => setIsActive(false)}>{t('Services', 'Layanan')}</Link>
+              <Link href="/impact" onClick={() => setIsActive(false)}>{t('Impact', 'Dampak')}</Link>
+              <Link href="/team" onClick={() => setIsActive(false)}>{t('Team', 'Tim')}</Link>
+              <Link href="/contact" onClick={() => setIsActive(false)}>{t('Contact', 'Kontak')}</Link>
             </div>
           </div>
 
-          <Link href="/report" onClick={() => setIsActive(false)} style={{ fontWeight: 'bold', color: '#0056b3' }}>Lapor Jalan</Link>
         </nav>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div className="nav-actions">
+          <button onClick={toggleLanguage} className="btn btn-secondary" style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', minWidth: '40px' }} title={t('Change Language', 'Ganti Bahasa')}>
+            {lang === 'en' ? 'ID' : 'EN'}
+          </button>
           {isLoggedIn ? (
-            <form action={logoutUser} style={{ display: 'inline-block', margin: 0 }}>
-              <button type="submit" className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}>Logout</button>
+            <form action={logoutUser} className="auth-form">
+              <button type="submit" className="btn btn-secondary">{t('Logout', 'Keluar')}</button>
             </form>
           ) : (
-            <Link href="/login" className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}>Login</Link>
+            <Link href="/login" className="btn btn-secondary">{t('Login', 'Masuk')}</Link>
           )}
-          <Link href="/report" className="btn btn-primary" style={{ display: 'inline-block' }}>Lapor</Link>
+          <Link href="/report" className="btn btn-primary">{t('Lapor', 'Lapor')}</Link>
         </div>
         <button className="mobile-menu-btn" aria-label="Toggle menu" onClick={toggleMenu}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

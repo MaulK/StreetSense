@@ -1,6 +1,9 @@
+"use client";
 import Link from 'next/link';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Footer() {
+  const { t } = useLanguage();
   return (
     <footer className="footer">
       <div className="container">
@@ -15,24 +18,24 @@ export default function Footer() {
               </div>
               StreetSense
             </Link>
-            <p>Empowering communities through technology.</p>
+            <p>{t('Empowering communities through technology.', 'Memberdayakan komunitas melalui teknologi.')}</p>
           </div>
           <div className="footer-links">
             <div className="link-group">
-              <h4>Product</h4>
-              <Link href="/#features">Features</Link>
-              <Link href="/#how-it-works">How it works</Link>
+              <h4>{t('Product', 'Produk')}</h4>
+              <Link href="/#features">{t('Features', 'Fitur')}</Link>
+              <Link href="/#how-it-works">{t('How it works', 'Cara Kerja')}</Link>
             </div>
             <div className="link-group">
-              <h4>Company</h4>
-              <Link href="/about">About Us</Link>
-              <Link href="/careers">Careers</Link>
-              <Link href="/contact">Contact</Link>
+              <h4>{t('Company', 'Perusahaan')}</h4>
+              <Link href="/about">{t('About Us', 'Tentang Kami')}</Link>
+              <Link href="/careers">{t('Careers', 'Karir')}</Link>
+              <Link href="/contact">{t('Contact', 'Kontak')}</Link>
             </div>
           </div>
         </div>
         <div className="footer-bottom">
-          <p>&copy; 2026 StreetSense. All rights reserved. Prototype Demo.</p>
+          <p>&copy; 2026 StreetSense. {t('All rights reserved. Prototype Demo.', 'Hak cipta dilindungi undang-undang. Demo Prototipe.')}</p>
         </div>
       </div>
     </footer>

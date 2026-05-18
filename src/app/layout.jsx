@@ -2,6 +2,7 @@ import './globals.css';
 import { Outfit } from 'next/font/google';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { LanguageProvider } from '../context/LanguageContext';
 
 const outfit = Outfit({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700'] });
 
@@ -18,11 +19,13 @@ export default async function RootLayout({ children }) {
   const isLoggedIn = !!session?.value;
 
   return (
-    <html lang="en" className={outfit.className}>
+    <html lang="id" className={outfit.className}>
       <body>
-        <Navbar isLoggedIn={isLoggedIn} />
-        {children}
-        <Footer />
+        <LanguageProvider>
+          <Navbar isLoggedIn={isLoggedIn} />
+          {children}
+          <Footer />
+        </LanguageProvider>
       </body>
     </html>
   );

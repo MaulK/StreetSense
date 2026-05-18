@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 
 function DashboardContent() {
   const [reports, setReports] = useState([]);
+  const [solvedReports, setSolvedReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const searchParams = useSearchParams();
@@ -44,18 +45,21 @@ function DashboardContent() {
     replace(`${pathname}?${params.toString()}`);
   };
 
-  const handleResolve = async (id) => {
+  const handleResolve = async (report) => {
     // Instant UI Update
     startTransition(() => {
-      addOptimisticReport(id);
+      addOptimisticReport(report.id);
     });
     
+    // Add to solved log
+    setSolvedReports(prev => [{...report, status: 'Resolved', solved_at: new Date().toISOString()}, ...prev]);
+
     // Simulate server action
     try {
-      await supabase.from('road_reports').delete().eq('id', id);
-      setReports((prev) => prev.filter(report => report.id !== id));
+      await supabase.from('road_reports').update({ status: 'Resolved' }).eq('id', report.id);
+      setReports((prev) => prev.filter(r => r.id !== report.id));
     } catch (err) {
-      console.error("Failed to delete report:", err);
+      console.error("Failed to update report:", err);
     }
   };
 
@@ -75,10 +79,11 @@ function DashboardContent() {
         query = query.ilike('road_name', `%${searchFilter}%`);
       }
       
-      const { data, error } = await query.limit(10);
+      const { data, error } = await query.limit(50);
       
       if (!error && data && data.length > 0) {
-        setReports(data);
+        setReports(data.filter(r => r.status !== 'Resolved'));
+        setSolvedReports(data.filter(r => r.status === 'Resolved'));
       } else {
         // Fallback or empty logic
         if (!error && data && data.length === 0) {
@@ -86,8 +91,8 @@ function DashboardContent() {
         } else {
           // Dummy data for MVP presentation
           let dummyData = [
-            { id: '1', road_name: 'Jl. Sudirman (Dekat Halte)', description: 'Lubang cukup dalam di lajur kiri, bahaya buat motor.', severity: 'High', latitude: -6.2088, longitude: 106.8456, created_at: new Date().toISOString() },
-            { id: '2', road_name: 'Jl. Thamrin KM 2', description: 'Aspal bergelombang parah setelah hujan.', severity: 'Medium', latitude: -6.2115, longitude: 106.8451, created_at: new Date(Date.now() - 86400000).toISOString() },
+            { id: '1', road_name: 'Jl. Sudirman (Dekat Halte)', description: 'Lubang cukup dalam di lajur kiri, bahaya buat motor.', severity: 'High', latitude: -6.2088, longitude: 106.8456, created_at: new Date().toISOString(), reporter_name: 'Budi Santoso', evidence_url: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=400' },
+            { id: '2', road_name: 'Jl. Thamrin KM 2', description: 'Aspal bergelombang parah setelah hujan.', severity: 'Medium', latitude: -6.2115, longitude: 106.8451, created_at: new Date(Date.now() - 86400000).toISOString(), reporter_name: 'Siti Aminah' },
           ];
           
           if (severityFilter) {
@@ -149,14 +154,26 @@ function DashboardContent() {
                   <strong>{report.road_name}</strong>
                   <span style={{ fontSize: '0.8rem', background: '#e9ecef', padding: '3px 8px', borderRadius: '12px' }}>{new Date(report.created_at).toLocaleDateString()}</span>
                 </div>
+                {report.evidence_url && (
+                  <div style={{ marginBottom: '15px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #ddd', maxHeight: '200px', display: 'flex', justifyContent: 'center', background: '#000' }}>
+                    {report.evidence_url.match(/\.(mp4|webm|ogg)$/i) ? (
+                      <video src={report.evidence_url} controls style={{ width: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <img src={report.evidence_url} alt="Evidence" style={{ width: '100%', objectFit: 'cover' }} />
+                    )}
+                  </div>
+                )}
                 <p style={{ fontSize: '0.9rem', margin: '0 0 10px 0', color: '#555' }}>{report.description}</p>
+                <div style={{ fontSize: '0.85rem', color: '#444', marginBottom: '10px', background: 'rgba(0,0,0,0.03)', padding: '6px 10px', borderRadius: '6px', display: 'inline-block' }}>
+                  👤 <strong>Reporter:</strong> {report.reporter_name || 'Anonymous Citizen'}
+                </div>
                 <div style={{ fontSize: '0.8rem', color: '#777', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', gap: '15px' }}>
                     <span>⚠️ Severity: <strong>{report.severity}</strong></span>
                     {report.latitude && <span>📍 {report.latitude.toFixed(4)}, {report.longitude.toFixed(4)}</span>}
                   </div>
-                  <button onClick={() => handleResolve(report.id)} style={{ padding: '4px 8px', fontSize: '0.8rem', background: '#28a745', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
-                    Resolve
+                  <button onClick={() => handleResolve(report)} style={{ padding: '6px 12px', fontSize: '0.85rem', background: '#28a745', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={e => e.target.style.background = '#218838'} onMouseLeave={e => e.target.style.background = '#28a745'}>
+                    ✓ Resolve
                   </button>
                 </div>
               </div>
@@ -214,6 +231,38 @@ function DashboardContent() {
           </button>
         </div>
       </section>
+
+      {/* Solved Reports Log */}
+      {solvedReports.length > 0 && (
+        <section style={{ background: '#fff', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', gridColumn: '1 / -1', marginTop: '10px' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 20px 0', borderBottom: '2px solid #f0f0f0', paddingBottom: '15px', color: '#28a745' }}>
+            <span style={{ fontSize: '1.5rem' }}>✅</span> Solved Reports Log
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '15px' }}>
+            {solvedReports.map(report => (
+              <div key={`solved-${report.id}`} style={{ padding: '15px', border: '1px solid #c3e6cb', borderRadius: '12px', background: '#d4edda', opacity: 0.8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <strong style={{ color: '#155724', textDecoration: 'line-through' }}>{report.road_name}</strong>
+                  <span style={{ fontSize: '0.75rem', background: '#c3e6cb', color: '#155724', padding: '2px 6px', borderRadius: '10px' }}>Solved</span>
+                </div>
+                {report.evidence_url && (
+                  <div style={{ marginBottom: '10px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #c3e6cb', height: '100px', display: 'flex', justifyContent: 'center', background: '#000', opacity: 0.8 }}>
+                    {report.evidence_url.match(/\.(mp4|webm|ogg)$/i) ? (
+                      <video src={report.evidence_url} style={{ width: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <img src={report.evidence_url} alt="Evidence" style={{ width: '100%', objectFit: 'cover' }} />
+                    )}
+                  </div>
+                )}
+                <p style={{ fontSize: '0.85rem', margin: '0 0 8px 0', color: '#155724' }}>{report.description}</p>
+                <div style={{ fontSize: '0.8rem', color: '#155724' }}>
+                  👤 Reporter: {report.reporter_name || 'Anonymous Citizen'}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
